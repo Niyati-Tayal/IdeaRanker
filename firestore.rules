@@ -1,0 +1,102 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helper Functions ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- User Profile Rules ---
+    match /users/{userId} {
+      function isValidUser(data) {
+        return data.uid == request.auth.uid
+          && data.email is string && data.email.size() <= 256
+          && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 128))
+          && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 512));
+      }
+
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && isValidUser(incoming()) 
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'email']);
+    }
+
+    // --- Thread Rules ---
+    match /threads/{threadId} {
+      function isValidThread(data) {
+        return data.userId == request.auth.uid
+          && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+          && (!('description' in data) || (data.description is string && data.description.size() <= 500))
+          && data.status in ['active', 'archived']
+          && data.weights is map
+          && data.weights.feasibility is number && data.weights.feasibility >= 0 && data.weights.feasibility <= 100
+          && data.weights.marketPotential is number && data.weights.marketPotential >= 0 && data.weights.marketPotential <= 100
+          && data.weights.innovation is number && data.weights.innovation >= 0 && data.weights.innovation <= 100
+          && data.weights.effort is number && data.weights.effort >= 0 && data.weights.effort <= 100;
+      }
+
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidThread(incoming());
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && isValidThread(incoming())
+        && (
+          // Allow toggling schema lock
+          incoming().diff(existing()).affectedKeys().hasOnly(['schemaLocked']) ||
+          // Allow weights change
+          incoming().diff(existing()).affectedKeys().hasOnly(['weights', 'updatedAt']) ||
+          // Allow name/desc change if not locked
+          (!existing().schemaLocked && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'description', 'fieldsConfig', 'updatedAt']))
+        );
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // --- Idea Rules ---
+    match /threads/{threadId}/ideas/{ideaId} {
+      function isValidIdea(data) {
+        return data.userId == request.auth.uid
+          && data.threadId == threadId
+          && data.name is string && data.name.size() > 0 && data.name.size() <= 200
+          && (!('description' in data) || (data.description is string && data.description.size() <= 2000))
+          && data.aiStatus in ['pending', 'processing', 'complete', 'failed'];
+      }
+
+      function isThreadOwner() {
+        return get(/databases/$(database)/documents/threads/$(threadId)).data.userId == request.auth.uid;
+      }
+
+      allow list: if isSignedIn() && isThreadOwner();
+      allow get: if isSignedIn() && isThreadOwner();
+      allow create: if isSignedIn() && isThreadOwner() && isValidIdea(incoming());
+      allow update: if isSignedIn() && isThreadOwner() && isValidIdea(incoming())
+        && (
+          // User updates
+          incoming().diff(existing()).affectedKeys().hasAny(['name', 'description', 'category', 'userInput']) ||
+          // AI enrichment updates (System update - in this MVP, client simulates AI status changes)
+          incoming().diff(existing()).affectedKeys().hasAny(['aiStatus', 'aiOutput', 'rankingScore', 'rank', 'rankHistory'])
+        );
+      allow delete: if isSignedIn() && isThreadOwner();
+    }
+  }
+}

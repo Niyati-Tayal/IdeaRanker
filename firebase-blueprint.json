@@ -1,0 +1,98 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and preferences",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Thread": {
+      "title": "Thread",
+      "description": "A collection of ideas with a specific context and field configuration",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "archived"] },
+        "schemaLocked": { "type": "boolean" },
+        "fieldsConfig": {
+          "type": "object",
+          "properties": {
+            "market": { "type": "boolean" },
+            "location": { "type": "boolean" },
+            "budget": { "type": "boolean" },
+            "timeline": { "type": "boolean" }
+          }
+        },
+        "weights": {
+          "type": "object",
+          "properties": {
+            "feasibility": { "type": "number" },
+            "marketPotential": { "type": "number" },
+            "innovation": { "type": "number" },
+            "effort": { "type": "number" }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name"]
+    },
+    "Idea": {
+      "title": "Idea",
+      "description": "An individual idea within a thread",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "threadId": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "userInput": { "type": "object" },
+        "aiStatus": { "type": "string", "enum": ["pending", "processing", "complete", "failed"] },
+        "aiOutput": {
+          "type": "object",
+          "properties": {
+            "budget_estimate": { "type": "object" },
+            "time_required": { "type": "object" },
+            "opportunities": { "type": "array", "items": { "type": "string" } },
+            "drawbacks": { "type": "array", "items": { "type": "string" } },
+            "pain_points": { "type": "array", "items": { "type": "string" } },
+            "why_good_for_you": { "type": "string" },
+            "how_it_works": { "type": "string" },
+            "scores": { "type": "object" }
+          }
+        },
+        "rankingScore": { "type": "number" },
+        "rank": { "type": "integer" },
+        "rankHistory": { "type": "array", "items": { "type": "integer" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["threadId", "userId", "name"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile information"
+    },
+    "/threads/{threadId}": {
+      "schema": "Thread",
+      "description": "Thread configuration and metadata"
+    },
+    "/threads/{threadId}/ideas/{ideaId}": {
+      "schema": "Idea",
+      "description": "Ideas belonging to a specific thread"
+    }
+  }
+}
