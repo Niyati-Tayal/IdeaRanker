@@ -19,15 +19,18 @@ export function RankingTable({ data, onViewIdea }: { data: any[], onViewIdea: (i
     columnHelper.accessor('rank', {
       header: 'Rank',
       cell: info => {
-        const val = info.getValue() || info.row.index + 1;
+        const val = info.getValue();
         return (
           <div className="flex items-center gap-3">
-             <span className="font-mono text-xs font-bold w-4 text-zinc-500">#{val}</span>
-             {/* Simple trend indicator mock */}
+             <span className="font-mono text-xs font-bold w-4 text-zinc-100 italic">#{val}</span>
              <Minus className="w-3 h-3 text-zinc-700" />
           </div>
         );
       }
+    }),
+    columnHelper.accessor('sno', {
+      header: 'Sno',
+      cell: info => <span className="font-mono text-[10px] text-zinc-500">{info.getValue() || '—'}</span>
     }),
     columnHelper.accessor('name', {
       header: 'Idea Name',

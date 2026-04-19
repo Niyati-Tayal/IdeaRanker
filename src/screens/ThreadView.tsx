@@ -112,6 +112,7 @@ export function ThreadView({ onViewIdea, onBack }: { onViewIdea: (id: string) =>
                  <div className="py-2">
                    <AddIdeaForm 
                     threadId={activeThreadId!} 
+                    nextSno={ideas.length + 1}
                     onSuccess={() => setIsAddModalOpen(false)} 
                    />
                  </div>

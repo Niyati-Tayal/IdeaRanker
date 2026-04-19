@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Rocket, Loader2, Sparkles, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-export function AddIdeaForm({ threadId, onSuccess }: { threadId: string, onSuccess: () => void }) {
+export function AddIdeaForm({ threadId, nextSno, onSuccess }: { threadId: string, nextSno: number, onSuccess: () => void }) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -24,16 +24,16 @@ export function AddIdeaForm({ threadId, onSuccess }: { threadId: string, onSucce
     if (!formData.name || !auth.currentUser) return;
 
     setLoading(true);
-    try {
-      // 1. Save initial record
-      const ideaRef = await addDoc(collection(db, `threads/${threadId}/ideas`), {
-        ...formData,
-        userId: auth.currentUser.uid,
-        threadId,
-        aiStatus: 'processing',
-        createdAt: serverTimestamp(),
-      });
+    const ideaRefInternal = await addDoc(collection(db, `threads/${threadId}/ideas`), {
+      ...formData,
+      userId: auth.currentUser.uid,
+      threadId,
+      sno: nextSno,
+      aiStatus: 'processing',
+      createdAt: serverTimestamp(),
+    });
 
+    try {
       // Update thread updatedAt and schema lock
       await updateDoc(doc(db, 'threads', threadId), {
         updatedAt: serverTimestamp(),
@@ -46,11 +46,11 @@ export function AddIdeaForm({ threadId, onSuccess }: { threadId: string, onSucce
       
       onSuccess();
 
-      // 2. Trigger AI Enrichment asynchronously (client-side simulation of background job)
+      // 2. Trigger AI Enrichment asynchronously
       const enrichment = await enrichIdea(formData);
       
       // 3. Update with AI output
-      await updateDoc(ideaRef, {
+      await updateDoc(ideaRefInternal, {
         aiStatus: 'complete',
         aiOutput: enrichment,
         updatedAt: serverTimestamp()
@@ -59,7 +59,11 @@ export function AddIdeaForm({ threadId, onSuccess }: { threadId: string, onSucce
       toast.success("AI Analysis complete!");
     } catch (error) {
       console.error(error);
-      toast.error("Failed to process idea.");
+      toast.error("Failed to process idea AI analysis.");
+      await updateDoc(ideaRefInternal, {
+        aiStatus: 'failed',
+        updatedAt: serverTimestamp()
+      });
     } finally {
       setLoading(false);
     }

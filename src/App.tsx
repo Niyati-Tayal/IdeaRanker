@@ -23,6 +23,12 @@ export default function App() {
     return unsubscribe;
   }, []);
 
+  useEffect(() => {
+    if (activeThreadId === null) {
+      setActiveIdeaId(null);
+    }
+  }, [activeThreadId]);
+
   if (loading) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-zinc-950 text-white font-mono">

@@ -29,31 +29,30 @@ export function LandingPage() {
             AI-Powered Decision Intelligence
           </div>
           
-          <h1 className="text-6xl md:text-8xl font-bold tracking-tighter leading-[0.9] mb-8">
-            PRIORITIZE <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40">GENIUS.</span>
+          <h1 className="text-6xl md:text-9xl font-bold tracking-tighter leading-[0.8] mb-10 flex flex-col items-center">
+            <span className="block italic font-serif font-light text-zinc-500 text-4xl mb-4 self-start md:ml-20">Prioritize</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-b from-zinc-100 to-zinc-500">WHAT MATTERS.</span>
           </h1>
           
-          <p className="text-zinc-400 text-lg md:text-xl max-w-2xl mb-12 font-sans font-light leading-relaxed">
+          <p className="text-zinc-500 text-lg md:text-2xl max-w-3xl mb-14 font-sans font-light leading-relaxed">
             IdeaRanker helps you capture, analyze, and rank your most ambitious projects 
-            using deep AI insights and custom weighted scoring. Stop guessing. Start building.
+            using deep AI insights and <span className="text-zinc-100 font-medium">custom weighted scoring. Stop guessing. Start building.</span>
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 mb-20">
+          <div className="flex flex-col sm:flex-row gap-5 mb-24">
             <Button 
               size="lg" 
               onClick={loginWithGoogle}
-              className="bg-zinc-100 text-zinc-950 hover:bg-white px-8 h-14 text-base font-semibold rounded-2xl group transition-all"
+              className="bg-zinc-100 text-zinc-950 hover:bg-white px-10 h-16 text-lg font-bold rounded-2xl group transition-all shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]"
             >
               Get Started for Free
-              <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-6 h-6 ml-2 group-hover:translate-x-1 transition-transform" />
             </Button>
             <Button 
-              variant="outline" 
               size="lg" 
-              className="h-14 px-8 border-white/10 hover:bg-white/5 text-base font-medium rounded-2xl"
+              className="h-16 px-10 bg-zinc-900 border border-white/10 hover:bg-zinc-800 text-zinc-100 text-lg font-medium rounded-2xl"
             >
-              Learn the Science
+              How it works
             </Button>
           </div>
 

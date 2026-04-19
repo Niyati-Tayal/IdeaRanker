@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { useAppStore } from '../lib/store';
+import { enrichIdea } from '../lib/gemini';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -18,8 +19,12 @@ import {
   Share2,
   Trash2,
   BarChart3,
-  TrendingUp
+  TrendingUp,
+  AlertCircle,
+  RotateCcw,
+  Loader2
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { 
   Radar, 
   RadarChart, 
@@ -34,17 +39,67 @@ export function IdeaDetail({ ideaId, onBack }: { ideaId: string, onBack: () => v
   const { activeThreadId } = useAppStore();
   const [idea, setIdea] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [retrying, setRetrying] = useState(false);
 
   useEffect(() => {
     if (!activeThreadId || !ideaId) return;
 
-    const unsubscribe = onSnapshot(doc(db, `threads/${activeThreadId}/ideas`, ideaId), (doc) => {
-      setIdea({ id: doc.id, ...doc.data() });
+    const unsubscribe = onSnapshot(doc(db, `threads/${activeThreadId}/ideas`, ideaId), (snap) => {
+      if (snap.exists()) {
+        setIdea({ id: snap.id, ...snap.data() });
+      }
       setLoading(false);
     });
 
     return unsubscribe;
   }, [activeThreadId, ideaId]);
+
+  const handleDelete = async () => {
+    if (!activeThreadId || !ideaId) return;
+    if (confirm("Are you sure you want to delete this idea?")) {
+      try {
+        await deleteDoc(doc(db, `threads/${activeThreadId}/ideas`, ideaId));
+        toast.success("Idea deleted");
+        onBack();
+      } catch (err) {
+        toast.error("Failed to delete idea");
+      }
+    }
+  };
+
+  const handleRetryAI = async () => {
+    if (!activeThreadId || !ideaId || !idea) return;
+    setRetrying(true);
+    try {
+      await updateDoc(doc(db, `threads/${activeThreadId}/ideas`, ideaId), {
+        aiStatus: 'processing',
+        updatedAt: serverTimestamp()
+      });
+
+      const enrichment = await enrichIdea({
+        name: idea.name,
+        description: idea.description,
+        category: idea.category,
+        location: idea.location,
+        targetMarket: idea.targetMarket
+      });
+
+      await updateDoc(doc(db, `threads/${activeThreadId}/ideas`, ideaId), {
+        aiStatus: 'complete',
+        aiOutput: enrichment,
+        updatedAt: serverTimestamp()
+      });
+      toast.success("Analysis complete");
+    } catch (err) {
+      toast.error("Failed to re-analyze");
+      await updateDoc(doc(db, `threads/${activeThreadId}/ideas`, ideaId), {
+        aiStatus: 'failed',
+        updatedAt: serverTimestamp()
+      });
+    } finally {
+      setRetrying(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -89,7 +144,12 @@ export function IdeaDetail({ ideaId, onBack }: { ideaId: string, onBack: () => v
             <Button variant="outline" size="icon" className="w-9 h-9 border-white/10 rounded-xl hover:bg-white/5">
               <Share2 className="w-4 h-4 text-zinc-400" />
             </Button>
-            <Button variant="outline" size="icon" className="w-9 h-9 border-white/10 rounded-xl hover:bg-red-500/10 hover:border-red-500/20 group">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={handleDelete}
+              className="w-9 h-9 border-white/10 rounded-xl hover:bg-red-500/10 hover:border-red-500/20 group"
+            >
               <Trash2 className="w-4 h-4 text-zinc-400 group-hover:text-red-500" />
             </Button>
           </div>
@@ -130,7 +190,23 @@ export function IdeaDetail({ ideaId, onBack }: { ideaId: string, onBack: () => v
         </div>
       </header>
 
-      {idea.aiStatus !== 'complete' ? (
+      {idea.aiStatus === 'failed' ? (
+        <div className="bg-red-500/5 border border-red-500/10 rounded-[2.5rem] py-24 flex flex-col items-center text-center">
+          <AlertCircle className="w-12 h-12 mb-6 text-red-500/50" />
+          <div className="space-y-4">
+            <h3 className="text-xl font-bold tracking-tight">Analysis Failed</h3>
+            <p className="text-zinc-500 font-sans max-w-sm">The AI system encountered an error while analyzing this idea. This could be due to invalid input or temporary service issues.</p>
+            <Button 
+              onClick={handleRetryAI} 
+              disabled={retrying}
+              className="bg-white text-black hover:bg-zinc-200 h-12 px-8 rounded-xl font-bold"
+            >
+              {retrying ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RotateCcw className="w-4 h-4 mr-2" />}
+              Retry AI Analysis
+            </Button>
+          </div>
+        </div>
+      ) : idea.aiStatus !== 'complete' ? (
          <div className="bg-white/[0.02] border border-dashed border-white/10 rounded-[2.5rem] py-32 flex flex-col items-center text-center">
             <Sparkles className="w-12 h-12 mb-6 text-zinc-700 animate-pulse" />
             <div className="space-y-2">
