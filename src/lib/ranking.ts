@@ -50,7 +50,7 @@ export function computeRankings(ideas: RankingIdea[], weights: Weights) {
 
     return {
       ...idea,
-      rankingScore: totalScore
+      rankingScore: isNaN(totalScore) ? 0 : totalScore
     };
   });
 

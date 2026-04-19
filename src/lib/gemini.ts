@@ -27,15 +27,20 @@ export interface AIEnrichmentOutput {
   };
 }
 
-export async function enrichIdea(ideaData: { name: string; description: string; category: string; location?: string; targetMarket?: string }) {
+export async function enrichIdea(
+  ideaData: { name: string; description: string; category: string; location?: string; targetMarket?: string },
+  retryCount = 0
+): Promise<AIEnrichmentOutput> {
   const model = "gemini-3-flash-preview";
+  const MAX_RETRIES = 2;
   
-  const systemPrompt = `You are a world-class business analyst and product strategy expert.
+  try {
+    const systemPrompt = `You are a world-class business analyst and product strategy expert.
 Evaluate the provided business idea and return a detailed, structured business analysis in JSON format.
 Focus on realism, market data points, and actionable insights.
 Scores must be between 1 and 10.`;
 
-  const userPrompt = `
+    const userPrompt = `
 Idea Name: ${ideaData.name}
 Description: ${ideaData.description}
 Category: ${ideaData.category}
@@ -43,60 +48,68 @@ Location Context: ${ideaData.location || "Global"}
 Target Market: ${ideaData.targetMarket || "General Consumer"}
 `;
 
-  const response = await ai.models.generateContent({
-    model,
-    contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-    config: {
-      systemInstruction: systemPrompt,
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          budget_estimate: {
-            type: Type.OBJECT,
-            properties: {
-              min: { type: Type.NUMBER },
-              max: { type: Type.NUMBER },
-              currency: { type: Type.STRING },
-              notes: { type: Type.STRING }
+    const response = await ai.models.generateContent({
+      model,
+      contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+      config: {
+        systemInstruction: systemPrompt,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            budget_estimate: {
+              type: Type.OBJECT,
+              properties: {
+                min: { type: Type.NUMBER },
+                max: { type: Type.NUMBER },
+                currency: { type: Type.STRING },
+                notes: { type: Type.STRING }
+              },
+              required: ["min", "max", "currency", "notes"]
             },
-            required: ["min", "max", "currency", "notes"]
+            time_required: {
+              type: Type.OBJECT,
+              properties: {
+                value: { type: Type.NUMBER },
+                unit: { type: Type.STRING, enum: ["weeks", "months"] },
+                breakdown: { type: Type.STRING }
+              },
+              required: ["value", "unit", "breakdown"]
+            },
+            opportunities: { type: Type.ARRAY, items: { type: Type.STRING } },
+            drawbacks: { type: Type.ARRAY, items: { type: Type.STRING } },
+            pain_points: { type: Type.ARRAY, items: { type: Type.STRING } },
+            why_good_for_you: { type: Type.STRING },
+            how_it_works: { type: Type.STRING },
+            scores: {
+              type: Type.OBJECT,
+              properties: {
+                feasibility: { type: Type.NUMBER, description: "1-10" },
+                marketPotential: { type: Type.NUMBER, description: "1-10" },
+                innovation: { type: Type.NUMBER, description: "1-10" },
+                effort: { type: Type.NUMBER, description: "1-10" }
+              },
+              required: ["feasibility", "marketPotential", "innovation", "effort"]
+            }
           },
-          time_required: {
-            type: Type.OBJECT,
-            properties: {
-              value: { type: Type.NUMBER },
-              unit: { type: Type.STRING, enum: ["weeks", "months"] },
-              breakdown: { type: Type.STRING }
-            },
-            required: ["value", "unit", "breakdown"]
-          },
-          opportunities: { type: Type.ARRAY, items: { type: Type.STRING } },
-          drawbacks: { type: Type.ARRAY, items: { type: Type.STRING } },
-          pain_points: { type: Type.ARRAY, items: { type: Type.STRING } },
-          why_good_for_you: { type: Type.STRING },
-          how_it_works: { type: Type.STRING },
-          scores: {
-            type: Type.OBJECT,
-            properties: {
-              feasibility: { type: Type.NUMBER, description: "1-10" },
-              marketPotential: { type: Type.NUMBER, description: "1-10" },
-              innovation: { type: Type.NUMBER, description: "1-10" },
-              effort: { type: Type.NUMBER, description: "1-10" }
-            },
-            required: ["feasibility", "marketPotential", "innovation", "effort"]
-          }
-        },
-        required: [
-          "budget_estimate", "time_required", "opportunities", "drawbacks", 
-          "pain_points", "why_good_for_you", "how_it_works", "scores"
-        ]
+          required: [
+            "budget_estimate", "time_required", "opportunities", "drawbacks", 
+            "pain_points", "why_good_for_you", "how_it_works", "scores"
+          ]
+        }
       }
-    }
-  });
+    });
 
-  const text = response.text;
-  if (!text) throw new Error("AI failed to generate response");
-  
-  return JSON.parse(text) as AIEnrichmentOutput;
+    const text = response.text;
+    if (!text) throw new Error("AI failed to generate response");
+    
+    return JSON.parse(text) as AIEnrichmentOutput;
+  } catch (error) {
+    if (retryCount < MAX_RETRIES) {
+      console.warn(`AI Enrichment failed, retrying (${retryCount + 1}/${MAX_RETRIES})...`, error);
+      await new Promise(r => setTimeout(r, 1000 * (retryCount + 1)));
+      return enrichIdea(ideaData, retryCount + 1);
+    }
+    throw error;
+  }
 }

@@ -47,11 +47,11 @@ export function RankingTable({ data, onViewIdea }: { data: any[], onViewIdea: (i
       header: 'Match Score',
       cell: info => {
         const val = info.getValue();
-        if (!val) return <span className="text-zinc-700">—</span>;
+        if (typeof val !== 'number' || isNaN(val) || val === 0) return <span className="text-zinc-700">—</span>;
         return (
           <div className="flex items-center gap-2">
             <div className="h-1.5 w-16 bg-zinc-900 rounded-full overflow-hidden">
-               <div className="h-full bg-zinc-100" style={{ width: `${val * 10}%` }} />
+               <div className="h-full bg-zinc-100" style={{ width: `${Math.min(val * 10, 100)}%` }} />
             </div>
             <span className="font-mono text-xs font-bold">{(val * 10).toFixed(1)}</span>
           </div>

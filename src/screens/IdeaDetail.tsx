@@ -172,7 +172,11 @@ export function IdeaDetail({ ideaId, onBack }: { ideaId: string, onBack: () => v
                 </div>
                 <div>
                    <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-emerald-500/60">Match Score</div>
-                   <div className="text-3xl font-bold text-emerald-500 tracking-tighter">{(idea.rankingScore * 10).toFixed(1)}</div>
+                   <div className="text-3xl font-bold text-emerald-500 tracking-tighter">
+                     {typeof idea.rankingScore === 'number' && !isNaN(idea.rankingScore) 
+                       ? (idea.rankingScore * 10).toFixed(1) 
+                       : '—'}
+                   </div>
                 </div>
              </div>
           )}
