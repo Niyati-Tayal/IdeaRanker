@@ -80,11 +80,13 @@ export function Dashboard() {
         </div>
 
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-zinc-100 text-zinc-950 hover:bg-white h-11 px-6 rounded-xl font-bold">
-              <Plus className="w-4 h-4 mr-2" />
-              New Thread
-            </Button>
+          <DialogTrigger 
+            render={
+              <Button className="bg-zinc-100 text-zinc-950 hover:bg-white h-11 px-6 rounded-xl font-bold" />
+            }
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            New Thread
           </DialogTrigger>
           <DialogContent className="bg-zinc-950 border-white/10 text-white sm:max-w-md rounded-3xl">
             <DialogHeader>

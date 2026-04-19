@@ -87,11 +87,13 @@ export function ThreadView({ onViewIdea, onBack }: { onViewIdea: (id: string) =>
 
           <div className="flex items-center gap-3">
              <Sheet>
-               <SheetTrigger asChild>
-                 <Button variant="outline" className="lg:hidden border-white/10 rounded-xl">
-                   <SlidersHorizontal className="w-4 h-4 mr-2" />
-                   Controls
-                 </Button>
+               <SheetTrigger 
+                 render={
+                   <Button variant="outline" className="lg:hidden border-white/10 rounded-xl" />
+                 }
+               >
+                 <SlidersHorizontal className="w-4 h-4 mr-2" />
+                 Controls
                </SheetTrigger>
                <SheetContent side="right" className="bg-zinc-950 border-white/10 text-white pt-12">
                  <FilterPanel />
@@ -99,11 +101,13 @@ export function ThreadView({ onViewIdea, onBack }: { onViewIdea: (id: string) =>
              </Sheet>
              
              <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-               <DialogTrigger asChild>
-                 <Button className="bg-zinc-100 text-zinc-950 hover:bg-white px-6 h-11 rounded-xl font-bold transition-all hover:scale-105 active:scale-95">
-                   <Plus className="w-4 h-4 mr-2" />
-                   Capture Idea
-                 </Button>
+               <DialogTrigger 
+                 render={
+                   <Button className="bg-zinc-100 text-zinc-950 hover:bg-white px-6 h-11 rounded-xl font-bold transition-all hover:scale-105 active:scale-95" />
+                 }
+               >
+                 <Plus className="w-4 h-4 mr-2" />
+                 Capture Idea
                </DialogTrigger>
                <DialogContent className="bg-zinc-950 border-white/10 text-white sm:max-w-xl rounded-3xl overflow-hidden">
                  <DialogHeader>
